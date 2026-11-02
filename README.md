@@ -1,6 +1,6 @@
 # Learning AI Service
 
-Small Node.js service using the official OpenAI Node SDK. The API key remains on the service host.
+Small Node.js service using Node 20+ and the official OpenAI Node SDK. The API key remains on the service host.
 
 ## Capabilities
 

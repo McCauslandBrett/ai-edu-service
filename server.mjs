@@ -177,10 +177,13 @@ async function generateLearningPlan(body) {
 }
 
 async function createJsonResponse({ instructions, content }) {
+  const inputContent = content.map(item => item.type === "input_text"
+    ? { ...item, text: item.text + " Return valid json only, following the requested response fields." }
+    : item);
   const result = await getOpenAI().responses.create({
     model: process.env.OPENAI_MODEL ?? "gpt-6-astra",
-    instructions,
-    input: [{ role: "user", content }],
+    instructions: instructions + " Return valid json only, following the requested response fields.",
+    input: [{ role: "user", content: inputContent }],
     text: { format: { type: "json_object" } },
     max_output_tokens: 3000
   });
