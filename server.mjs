@@ -1,7 +1,8 @@
+import "dotenv/config";
 import http from "node:http";
 import OpenAI from "openai";
 
-const port = Number(process.env.PORT ?? 3001);
+const port = Number(process.env.PORT ?? 3100);
 const host = process.env.HOST ?? "0.0.0.0";
 const maxBodyBytes = 12 * 1024 * 1024;
 
@@ -17,15 +18,20 @@ const server = http.createServer(async (request, response) => {
   }
   if (request.method !== "POST") return send(response, 404, { error: "Route not found." });
 
+  const startedAt = Date.now();
   try {
     const body = await readJson(request);
-    if (request.url === "/api/grade") return send(response, 200, await gradeAssignment(body));
-    if (request.url === "/api/assignments/generate") return send(response, 200, await generateAssignments(body));
-    if (request.url === "/api/plans/generate") return send(response, 200, await generateLearningPlan(body));
-    return send(response, 404, { error: "Route not found." });
+    let result;
+    if (request.url === "/api/grade") result = await gradeAssignment(body);
+    else if (request.url === "/api/assignments/generate") result = await generateAssignments(body);
+    else if (request.url === "/api/plans/generate") result = await generateLearningPlan(body);
+    else return send(response, 404, { error: "Route not found." });
+    console.log(request.method, request.url, response.statusCode || 200, Date.now() - startedAt + "ms");
+    return send(response, 200, result);
   } catch (error) {
     const status = error?.status === 429 ? 429 : error?.status === 400 ? 400 : error?.status === 503 ? 503 : 502;
-    send(response, status, { error: error?.message ?? "The request failed." });
+    console.error(request.method, request.url, status, Date.now() - startedAt + "ms", error?.message ?? error);
+    return send(response, status, { error: error?.message ?? "The request failed." });
   }
 });
 
@@ -184,7 +190,7 @@ async function createJsonResponse({ instructions, content }) {
 
 let openaiClient;
 function getOpenAI() {
-  openaiClient ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  openaiClient ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 300_000 });
   return openaiClient;
 }
 function requireModel() {
