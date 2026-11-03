@@ -35,18 +35,33 @@ function readableValue(value, kind) {
     .join("\n");
 }
 
-export function normalizePlanActivity(activity, fallbackTitle, subject) {
+export function normalizePlanActivity(activity, fallbackTitle, subject, trackedSkills) {
   if (!Array.isArray(activity.questions) || activity.questions.length === 0) {
     throw new Error("Each weekly activity must include questions.");
   }
+  const questions = readableArray(activity.questions, "question");
+  const questionSkills = normalizeQuestionSkills(activity.questionSkills, questions.length, trackedSkills);
   return {
     id: stringOr(activity.id, fallbackTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")),
     title: stringOr(activity.title, fallbackTitle),
     subject: stringOr(activity.subject, subject),
     prompt: stringOr(activity.prompt, "Complete the activity and show your reasoning."),
-    questions: readableArray(activity.questions, "question"),
+    questions,
+    questionSkills,
     answerKey: readableArray(activity.answerKey, "answer"),
     rubric: stringOr(activity.rubric, "Award credit for correct answers and clear reasoning."),
     points: Math.max(1, Math.min(100, Number(activity.points) || 10))
   };
+}
+
+function normalizeQuestionSkills(value, questionCount, trackedSkills) {
+  if (!Array.isArray(value) || value.length !== questionCount) {
+    throw new Error("Every question must be linked to one tracked skill.");
+  }
+  return value.map(skill => {
+    const name = stringOr(skill, "");
+    const match = trackedSkills.find(candidate => candidate.toLowerCase() === name.toLowerCase());
+    if (!match) throw new Error("Each question skill must match a tracked skill.");
+    return match;
+  });
 }

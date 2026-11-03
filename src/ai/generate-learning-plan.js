@@ -6,6 +6,7 @@ export async function generateLearningPlan(body) {
   const request = parsePlanRequest(body);
   const result = await createJsonResponse({
     instructions: planInstructions(request.assignmentCount),
+    maxOutputTokens: 16000,
     content: [{
       type: "input_text",
       text: "Generate the complete four-week plan as json. Student and instructor context: " + JSON.stringify(request.context)
@@ -68,12 +69,13 @@ function planInstructions(assignmentCount) {
       : `The instructor or parent explicitly requested ${assignmentCount} assignments/worksheets per week; create exactly that many for every week.`,
     "Every week must also contain a detailed lecturePrompt for a tutoring chatbot.",
     "Each lecturePrompt must explain what to teach, refer to this student's age, grade, goals, prior assessment results and struggles, and instruct the tutor to gently redirect and refocus the conversation when the child goes off topic.",
-    "Assessments and assignments need questions, answerKey, rubric, and points.",
+    "Assessments and assignments need questions, questionSkills, answerKey, rubric, and points.",
     "questions and answerKey must be arrays of plain text strings, never objects. Include any answer choices in the question string.",
+    "For every assessment and assignment, questionSkills is an array aligned one-to-one with questions. Each entry must exactly match one of the tracked skill names in progress[].subject. Every question must be tied to one tracked skill.",
     "Track the targeted skills in progress with a starting completion of zero unless historical evidence justifies another baseline.",
     "Return valid json with subject, objective, monthlyWindow, milestones, progress, and weeks.",
     `weeks is an array of exactly four items. Each item has weekNumber, theme, lecturePrompt, one assessment object, and an assignments array containing exactly ${assignmentCount} items.`,
-    "Each assessment and assignment object has title, prompt, questions, answerKey, rubric, and points.",
+    "Each assessment and assignment object has title, prompt, questions, questionSkills, answerKey, rubric, and points.",
     "Milestone kind is assessment, assignment, chat, or final. Completion is 0 through 100."
   ].join(" ");
 }
@@ -82,18 +84,21 @@ function normalizeLearningPlan(result, subject, objective, targetedSkills, assig
   if (!Array.isArray(result.weeks) || result.weeks.length !== 4 || !Array.isArray(result.progress)) {
     throw new Error("The model must return four weekly plans and tracked skills.");
   }
-  const weeks = normalizeWeeks(result.weeks, subject, assignmentCount);
+  const progress = normalizeProgress(result.progress, targetedSkills, subject);
+  if (progress.length === 0) throw new Error("The model must return tracked skills.");
+  const trackedSkills = progress.map(item => item.subject);
+  const weeks = normalizeWeeks(result.weeks, subject, assignmentCount, trackedSkills);
   return {
     subject,
     objective,
     monthlyWindow: "4 weeks",
     milestones: buildMilestones(weeks),
-    progress: normalizeProgress(result.progress, targetedSkills, subject),
+    progress,
     weeks
   };
 }
 
-function normalizeWeeks(inputWeeks, subject, expectedAssignmentCount) {
+function normalizeWeeks(inputWeeks, subject, expectedAssignmentCount, trackedSkills) {
   return inputWeeks
     .sort((a, b) => Number(a.weekNumber) - Number(b.weekNumber))
     .map((week, index) => {
@@ -105,9 +110,9 @@ function normalizeWeeks(inputWeeks, subject, expectedAssignmentCount) {
         weekNumber,
         theme: stringOr(week.theme, "Weekly subject practice"),
         lecturePrompt: stringOr(week.lecturePrompt, "Teach the weekly focus at the student's level and gently redirect off-topic conversation."),
-        assessment: normalizePlanActivity(week.assessment, "Week " + weekNumber + " assessment", subject),
+        assessment: normalizePlanActivity(week.assessment, "Week " + weekNumber + " assessment", subject, trackedSkills),
         assignments: week.assignments.map((item, index) =>
-          normalizePlanActivity(item, "Week " + weekNumber + " assignment " + (index + 1), subject)
+          normalizePlanActivity(item, "Week " + weekNumber + " assignment " + (index + 1), subject, trackedSkills)
         )
       };
     });
