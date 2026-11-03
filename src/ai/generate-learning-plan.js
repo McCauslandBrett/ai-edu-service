@@ -5,13 +5,13 @@ import { normalizePlanActivity, stringOr } from "../domain/assignment-content.js
 export async function generateLearningPlan(body) {
   const request = parsePlanRequest(body);
   const result = await createJsonResponse({
-    instructions: planInstructions(),
+    instructions: planInstructions(request.assignmentCount),
     content: [{
       type: "input_text",
       text: "Generate the complete four-week plan as json. Student and instructor context: " + JSON.stringify(request.context)
     }]
   });
-  return normalizeLearningPlan(result, request.subject, request.objective, request.targetedSkills);
+  return normalizeLearningPlan(result, request.subject, request.objective, request.targetedSkills, request.assignmentCount);
 }
 
 function parsePlanRequest(body) {
@@ -27,6 +27,7 @@ function parsePlanRequest(body) {
     subject: subject.trim(),
     objective: objective.trim(),
     targetedSkills: Array.isArray(targetedSkills) ? targetedSkills : [],
+    assignmentCount: parseRequestedAssignmentCount(instructorContext),
     context: {
       student: {
         name: student?.name ?? "Student",
@@ -39,34 +40,49 @@ function parsePlanRequest(body) {
       highestPreviousAssessmentLevel: highestAssessmentLevel ?? "",
       priorAssessmentResults: Array.isArray(priorResults) ? priorResults : [],
       instructorOrParentGuidance: instructorContext ?? "",
+      requestedAssignmentsPerWeek: parseRequestedAssignmentCount(instructorContext),
       monthlyWindow: monthlyWindow ?? "4 weeks"
     }
   };
 }
 
-function planInstructions() {
+function parseRequestedAssignmentCount(guidance) {
+  const numberWords = {
+    one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+    seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12
+  };
+  const match = String(guidance ?? "").match(/\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b(?:[\s-]+[a-z]+){0,2}[\s-]+(assignments?|worksheets?)\b/i);
+  if (!match) return 4;
+  const requested = Number(match[1]) || numberWords[match[1].toLowerCase()];
+  return Number.isInteger(requested) && requested >= 1 && requested <= 12 ? requested : 4;
+}
+
+function planInstructions(assignmentCount) {
   return [
     "You are a curriculum planning assistant creating a complete one-month subject plan for one child.",
     "Use the child's age and school grade, targeted skills, learning outcome, highest previous assessment level, historical results, and instructor or parent guidance.",
     "The plan covers exactly four weeks, named Week 1 through Week 4.",
     "Every week must contain exactly one assessment. Week 1 assessment is a baseline assessment, and Week 4 assessment is a final assessment.",
-    "Every week must also contain at least one assignment and a detailed lecturePrompt for a tutoring chatbot.",
+    assignmentCount === 4
+      ? "Every week must contain exactly four distinct assignments/worksheets by default. If the instructor or parent guidance explicitly requests a different number per week, follow that requested number instead."
+      : `The instructor or parent explicitly requested ${assignmentCount} assignments/worksheets per week; create exactly that many for every week.`,
+    "Every week must also contain a detailed lecturePrompt for a tutoring chatbot.",
     "Each lecturePrompt must explain what to teach, refer to this student's age, grade, goals, prior assessment results and struggles, and instruct the tutor to gently redirect and refocus the conversation when the child goes off topic.",
     "Assessments and assignments need questions, answerKey, rubric, and points.",
     "questions and answerKey must be arrays of plain text strings, never objects. Include any answer choices in the question string.",
     "Track the targeted skills in progress with a starting completion of zero unless historical evidence justifies another baseline.",
     "Return valid json with subject, objective, monthlyWindow, milestones, progress, and weeks.",
-    "weeks is an array of exactly four items. Each item has weekNumber, theme, lecturePrompt, one assessment object, and an assignments array.",
+    `weeks is an array of exactly four items. Each item has weekNumber, theme, lecturePrompt, one assessment object, and an assignments array containing exactly ${assignmentCount} items.`,
     "Each assessment and assignment object has title, prompt, questions, answerKey, rubric, and points.",
     "Milestone kind is assessment, assignment, chat, or final. Completion is 0 through 100."
   ].join(" ");
 }
 
-function normalizeLearningPlan(result, subject, objective, targetedSkills) {
+function normalizeLearningPlan(result, subject, objective, targetedSkills, assignmentCount) {
   if (!Array.isArray(result.weeks) || result.weeks.length !== 4 || !Array.isArray(result.progress)) {
     throw new Error("The model must return four weekly plans and tracked skills.");
   }
-  const weeks = normalizeWeeks(result.weeks, subject);
+  const weeks = normalizeWeeks(result.weeks, subject, assignmentCount);
   return {
     subject,
     objective,
@@ -77,13 +93,13 @@ function normalizeLearningPlan(result, subject, objective, targetedSkills) {
   };
 }
 
-function normalizeWeeks(inputWeeks, subject) {
+function normalizeWeeks(inputWeeks, subject, expectedAssignmentCount) {
   return inputWeeks
     .sort((a, b) => Number(a.weekNumber) - Number(b.weekNumber))
     .map((week, index) => {
       const weekNumber = index + 1;
-      if (!week.assessment || !Array.isArray(week.assignments) || week.assignments.length < 1) {
-        throw new Error("Each week needs one assessment and at least one assignment.");
+      if (!week.assessment || !Array.isArray(week.assignments) || week.assignments.length !== expectedAssignmentCount) {
+        throw new Error(`Each week needs one assessment and exactly ${expectedAssignmentCount} assignments.`);
       }
       return {
         weekNumber,
