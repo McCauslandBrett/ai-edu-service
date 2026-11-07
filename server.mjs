@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createServiceServer } from "./src/http/service-server.js";
 import { gradeAssignment } from "./src/ai/grade-assignment.js";
 import { generateAssignments } from "./src/ai/generate-assignments.js";
+import { adjustAssignment } from "./src/ai/adjust-assignment.js";
 import { generateLearningPlan } from "./src/ai/generate-learning-plan.js";
 import { tutorChat } from "./src/ai/tutor-chat.js";
 import { transcribeTutorAudio } from "./src/ai/transcribe-tutor-audio.js";
@@ -12,6 +13,7 @@ const host = process.env.HOST ?? "0.0.0.0";
 const server = createServiceServer({
   "/api/grade": gradeAssignment,
   "/api/assignments/generate": generateAssignments,
+  "/api/assignments/adjust": adjustAssignment,
   "/api/plans/generate": generateLearningPlan,
   "/api/tutor/chat": tutorChat,
   "/api/tutor/transcribe": transcribeTutorAudio

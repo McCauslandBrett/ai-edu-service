@@ -69,13 +69,15 @@ function planInstructions(assignmentCount) {
       : `The instructor or parent explicitly requested ${assignmentCount} assignments/worksheets per week; create exactly that many for every week.`,
     "Every week must also contain a detailed lecturePrompt for a tutoring chatbot.",
     "Each lecturePrompt must explain what to teach, refer to this student's age, grade, goals, prior assessment results and struggles, and instruct the tutor to gently redirect and refocus the conversation when the child goes off topic.",
-    "Assessments and assignments need questions, questionSkills, answerKey, rubric, and points.",
+    "Every assignment and weekly assessment should take about 30 minutes. Create exactly four substantial numbered exercises for each worksheet, each taking roughly 6 to 8 minutes and including multiple steps, reasoning, or hands-on practice rather than repetitive one-step questions.",
+    "Include questionIllustrations aligned with questions: concise emoji/object groupings or simple visual layouts that directly support the exercise; use an empty string when a visual adds no value.",
+    "Assessments and assignments need questions, questionSkills, questionIllustrations, answerKey, rubric, and points.",
     "questions and answerKey must be arrays of plain text strings, never objects. Include any answer choices in the question string.",
     "For every assessment and assignment, questionSkills is an array aligned one-to-one with questions. Each entry must exactly match one of the tracked skill names in progress[].subject. Every question must be tied to one tracked skill.",
     "Track the targeted skills in progress with a starting completion of zero unless historical evidence justifies another baseline.",
     "Return valid json with subject, objective, monthlyWindow, milestones, progress, and weeks.",
     `weeks is an array of exactly four items. Each item has weekNumber, theme, lecturePrompt, one assessment object, and an assignments array containing exactly ${assignmentCount} items.`,
-    "Each assessment and assignment object has title, prompt, questions, questionSkills, answerKey, rubric, and points.",
+    "Each assessment and assignment object has title, prompt, exactly four substantial questions, questionSkills, questionIllustrations, answerKey, rubric, and points.",
     "Milestone kind is assessment, assignment, chat, or final. Completion is 0 through 100."
   ].join(" ");
 }

@@ -21,8 +21,9 @@ export async function generateAssignments(body) {
       "Return questionSkills as an array aligned one-to-one with questions. Link every question to exactly one of the provided targeted skill names, using those names exactly.",
       "questions and answerKey must each be arrays of plain text strings; never return question or answer objects.",
       "For multiple-choice questions, include all choices in the question string.",
-      "Avoid trick questions and keep the workload appropriate.",
-      "Return JSON shaped as an object with an assignments array. Each assignment has title, subject, prompt, questions, questionSkills, answerKey, rubric, and points."
+      "Design each worksheet to take about 30 minutes of focused work. Include exactly four substantial numbered exercises; each should have enough parts, reasoning, or hands-on work to take about 6 to 8 minutes. Avoid padding with repetitive one-step questions.",
+      "Include questionIllustrations as an array aligned one-to-one with questions. Use concise emoji/object groupings or simple visual layouts that directly support the exercise; use an empty string only when a visual would not help.",
+      "Return JSON shaped as an object with an assignments array. Each assignment has title, subject, prompt, questions, questionSkills, questionIllustrations, answerKey, rubric, and points."
     ].join(" "),
     content: [{
       type: "input_text",
@@ -65,8 +66,16 @@ function normalizeAssignment(item, index, subject, fallbackPoints, targetedSkill
     prompt: stringOr(item.prompt, ""),
     questions,
     questionSkills,
+    questionIllustrations: normalizeIllustrations(item.questionIllustrations, questions.length),
+    writingSpaceMultipliers: questions.map(() => 1),
     answerKey: readableArray(item.answerKey, "answer"),
     rubric: stringOr(item.rubric, ""),
     points: Number.isFinite(Number(item.points)) ? Number(item.points) : fallbackPoints
   };
+}
+
+function normalizeIllustrations(value, count) {
+  return Array.from({ length: count }, (_, index) =>
+    typeof value?.[index] === "string" ? value[index].trim() : ""
+  );
 }

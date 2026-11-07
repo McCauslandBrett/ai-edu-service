@@ -40,6 +40,9 @@ export function normalizePlanActivity(activity, fallbackTitle, subject, trackedS
     throw new Error("Each weekly activity must include questions.");
   }
   const questions = readableArray(activity.questions, "question");
+  if (questions.length !== 4) {
+    throw new Error("Each worksheet must contain four substantial exercises for a roughly 30-minute work session.");
+  }
   const questionSkills = normalizeQuestionSkills(activity.questionSkills, questions.length, trackedSkills);
   return {
     id: stringOr(activity.id, fallbackTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")),
@@ -48,6 +51,10 @@ export function normalizePlanActivity(activity, fallbackTitle, subject, trackedS
     prompt: stringOr(activity.prompt, "Complete the activity and show your reasoning."),
     questions,
     questionSkills,
+    questionIllustrations: Array.from({ length: questions.length }, (_, index) =>
+      typeof activity.questionIllustrations?.[index] === "string" ? activity.questionIllustrations[index].trim() : ""
+    ),
+    writingSpaceMultipliers: questions.map(() => 1),
     answerKey: readableArray(activity.answerKey, "answer"),
     rubric: stringOr(activity.rubric, "Award credit for correct answers and clear reasoning."),
     points: Math.max(1, Math.min(100, Number(activity.points) || 10))
