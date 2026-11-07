@@ -6,7 +6,7 @@ let openaiClient;
 function getOpenAI() {
   openaiClient ??= new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    timeout: 300_000
+    timeout: 600_000
   });
   return openaiClient;
 }
