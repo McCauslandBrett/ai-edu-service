@@ -39,7 +39,7 @@ export async function tutorChat(body) {
 }
 
 function parseTutorRequest(body) {
-  const { student, subject, weekNumber, lecturePrompt, messages, canvasItems, imageBase64 } = body ?? {};
+  const { student, subject, weekNumber, lecturePrompt, action, messages, canvasItems, imageBase64 } = body ?? {};
   if (typeof subject !== "string" || !subject.trim() ||
       typeof lecturePrompt !== "string" || !lecturePrompt.trim()) {
     throw clientError("A subject and prepared lecture prompt are required.");
@@ -61,6 +61,7 @@ function parseTutorRequest(body) {
     subject: subject.trim().slice(0, 160),
     weekNumber: Math.max(1, Math.min(4, Number(weekNumber) || 1)),
     lecturePrompt: lecturePrompt.trim().slice(0, 12000),
+    action: action === "next-question" ? action : undefined,
     messages: validMessages,
     canvasItems: Array.isArray(canvasItems)
       ? canvasItems.filter(item => typeof item === "string").slice(-12).map(item => item.slice(0, 500))
@@ -74,12 +75,17 @@ function parseTutorRequest(body) {
 function tutorInstructions(request) {
   return [
     "You are a warm, age-appropriate learning tutor having a live lesson with one student.",
+    "This session is for a preschool-age child who cannot read or write. Speak all directions and explanations aloud in the reply using short, concrete sentences. Do not rely on written text, lists, or labels on the whiteboard.",
     "Follow the instructor's prepared lesson prompt as the lesson plan. Use the student's age, grade, subject, and week to choose language and examples.",
     "Ask one clear question at a time, wait for the learner's thinking, encourage them to explain, and gently redirect off-topic conversation back to the lesson.",
+    ...(request.action === "next-question" ? [
+      "The instructor pressed Next question. Move forward now: briefly praise the student's effort, then give one new question that practices the same lesson skill with a different example. Do not repeat the prior question, and do not claim the student said anything they did not say."
+    ] : []),
     "Respond to the learner's latest message in a natural conversational voice. Do not reveal hidden answers to practice questions unless the lesson prompt directs you to.",
+    "In your first spoken greeting, briefly tell the child they can answer out loud and point or draw on the whiteboard; a grown-up can help tap the microphone controls.",
     "You can see the learner's current whiteboard image when one is provided. Refer to their work specifically and constructively.",
     "When a visual would help the learner, create a real whiteboard illustration. This can be a set of distinct objects for a counting task (for example, several apples with the student asked to circle eight) or a clear, age-appropriate scene/diagram for a science or physics problem. The image must contain the objects or setup and no answer markings; the student will draw over it. Do not generate images for every turn. Keep using the current illustration if it still fits the lesson.",
-    "You may also add one or two concise text notes to the whiteboard.",
+    "Do not add written text notes to the whiteboard. Use a picture or simple visual when a visual would help.",
     "Return JSON with exactly three fields: reply (string), canvasItems (array of new short strings to add to the whiteboard; use an empty array when none are useful), and imagePrompt (a concise image-generation prompt string for a new illustration, or null if no new image is needed). When a task asks the student to identify or circle a quantity, include exactly that many clearly separated target objects plus several different distractor objects. For example, if the student should circle eight apples, show eight apples mixed among other objects. Do not highlight or circle the answer.",
     `Student: ${request.student.name}, age ${request.student.age ?? "not provided"}, grade ${request.student.gradeLevel || "not provided"}. Subject: ${request.subject}. Week ${request.weekNumber}.`,
     "Prepared instructor prompt follows: " + request.lecturePrompt

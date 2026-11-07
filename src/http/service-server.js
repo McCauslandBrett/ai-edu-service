@@ -23,7 +23,7 @@ function respondWithHealth(response) {
   return sendJson(response, 200, {
     ok: true,
     service: "Learning AI Service",
-    capabilities: ["grading", "assignment-generation", "plan-generation", "tutor-chat"],
+    capabilities: ["grading", "assignment-generation", "plan-generation", "tutor-chat", "tutor-transcription"],
     configured: Boolean(process.env.OPENAI_API_KEY)
   });
 }
