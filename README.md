@@ -7,6 +7,7 @@ Node.js service using Node 20+ and the official OpenAI Node SDK. The API key sta
 - `POST /api/grade`: grade handwritten assignment work against its answer key and rubric.
 - `POST /api/assignments/generate`: generate assignment content for a student and subject.
 - `POST /api/plans/generate`: create a four-week subject plan with weekly tutoring prompts, assignments, and assessments.
+- `POST /api/tutor/chat`: run a prompt-led tutor conversation with student messages and whiteboard context.
 - `GET /health`: report service status and supported capabilities.
 
 ## Code organization
@@ -14,6 +15,7 @@ Node.js service using Node 20+ and the official OpenAI Node SDK. The API key sta
 - `server.mjs` configures and starts the service.
 - `src/http/service-server.js` owns HTTP routing, request parsing, and response handling.
 - `src/ai/openai-response-client.js` owns OpenAI Responses API calls and JSON output handling.
+- `src/ai/openai-image-client.js` owns on-demand whiteboard illustration generation.
 - `src/ai/grade-assignment.js`, `generate-assignments.js`, and `generate-learning-plan.js` each own one AI capability.
 - `src/domain/assignment-content.js` normalizes assignment questions, answers, and plan activities.
 - `src/errors.js` defines request and configuration errors.
