@@ -20,7 +20,8 @@ export async function generateAssignments(body) {
       "Include a clear prompt, ordered questions, a reliable answer key aligned one-to-one with questions, a concise rubric, and total points.",
       "Return questionSkills as an array aligned one-to-one with questions. Link every question to exactly one of the provided targeted skill names, using those names exactly.",
       "questions and answerKey must each be arrays of plain text strings; never return question or answer objects.",
-      "For multiple-choice questions, include all choices in the question string.",
+      "Every exercise is completed on the worksheet page. Ask the student to write, draw, circle, connect, label, or mark an answer on the page. Never accept or request spoken, verbal, pointed, or gesture-only answers; do not say the tutor or parent will record an oral answer.",
+      "For multiple-choice questions, include all choices in the question string and direct the student to mark the selected choice on the page.",
       "Design each worksheet to take about 30 minutes of focused work. Include exactly four substantial numbered exercises; each should have enough parts, reasoning, or hands-on work to take about 6 to 8 minutes. Avoid padding with repetitive one-step questions.",
       "Include questionIllustrations as an array aligned one-to-one with questions. Use concise emoji/object groupings or simple visual layouts that directly support the exercise; use an empty string only when a visual would not help.",
       "Return JSON shaped as an object with an assignments array. Each assignment has title, subject, prompt, questions, questionSkills, questionIllustrations, answerKey, rubric, and points."

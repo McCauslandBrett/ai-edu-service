@@ -13,6 +13,7 @@ export async function adjustAssignment(body) {
     instructions: [
       "You revise one student's worksheet according to a parent's or instructor's specific change request.",
       "Keep the existing title, topic, age level, and all useful content. Make only the requested changes and preserve existing exercises unless the request explicitly asks to replace them.",
+      "Every worksheet exercise must be answered on the page with writing, drawing, circling, connecting, labeling, or another visible mark. Never use spoken, verbal, pointing, or gesture-only answers, and never say an adult will record an oral response.",
       "A request for more writing space changes writingSpaceMultipliers for the relevant exercise to 1.5, 2, or 3. Keep other exercises at their current space setting.",
       "A request for more problems appends the requested number of complete, age-appropriate exercises and answer-key entries. Map every exercise to exactly one existing skill name.",
       "A request for an illustration supplies a concise, helpful visual for the specified exercise in questionIllustrations. Prefer clear emoji object groups or simple text diagrams that render reliably on an iPad.",

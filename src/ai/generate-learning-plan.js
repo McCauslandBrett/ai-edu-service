@@ -68,8 +68,10 @@ function planInstructions(assignmentCount) {
       ? "Every week must contain exactly four distinct assignments/worksheets by default. If the instructor or parent guidance explicitly requests a different number per week, follow that requested number instead."
       : `The instructor or parent explicitly requested ${assignmentCount} assignments/worksheets per week; create exactly that many for every week.`,
     "Every week must also contain a detailed lecturePrompt for a tutoring chatbot.",
+    "Every week must include a youtubeVideo object with a real, age-appropriate educational YouTube video covering at least one subject skill or that week's theme. Prefer reputable child-friendly educational channels. Include title, channel, a direct YouTube watch URL (youtube.com/watch?v=... or youtu.be/...), and a brief reason it fits this child. Never invent a video URL; if uncertain, give a YouTube search-results URL for a precise age-appropriate query instead.",
     "Each lecturePrompt must explain what to teach, refer to this student's age, grade, goals, prior assessment results and struggles, and instruct the tutor to gently redirect and refocus the conversation when the child goes off topic.",
-    "Every assignment and weekly assessment should take about 30 minutes. Create exactly four substantial numbered exercises for each worksheet, each taking roughly 6 to 8 minutes and including multiple steps, reasoning, or hands-on practice rather than repetitive one-step questions.",
+    "Every assignment and weekly assessment is completed on its worksheet page. Each exercise must request a written, drawn, circled, connected, labeled, or otherwise marked response on the page. Never accept or request spoken, verbal, pointed, or gesture-only worksheet answers; do not say a tutor or parent will record an oral answer. Spoken answers belong only in the separate tutor chat, not assignment or assessment questions.",
+    "Every assignment and weekly assessment should take about 30 minutes. Create exactly four substantial numbered exercises for each worksheet, each taking roughly 6 to 8 minutes and including multiple steps, reasoning, or hands-on work on the page rather than repetitive one-step questions.",
     "Include questionIllustrations aligned with questions: concise emoji/object groupings or simple visual layouts that directly support the exercise; use an empty string when a visual adds no value.",
     "Assessments and assignments need questions, questionSkills, questionIllustrations, answerKey, rubric, and points.",
     "questions and answerKey must be arrays of plain text strings, never objects. Include any answer choices in the question string.",
@@ -112,12 +114,33 @@ function normalizeWeeks(inputWeeks, subject, expectedAssignmentCount, trackedSki
         weekNumber,
         theme: stringOr(week.theme, "Weekly subject practice"),
         lecturePrompt: stringOr(week.lecturePrompt, "Teach the weekly focus at the student's level and gently redirect off-topic conversation."),
+        youtubeVideo: normalizeYoutubeVideo(week.youtubeVideo, subject, week.theme, weekNumber),
         assessment: normalizePlanActivity(week.assessment, "Week " + weekNumber + " assessment", subject, trackedSkills),
         assignments: week.assignments.map((item, index) =>
           normalizePlanActivity(item, "Week " + weekNumber + " assignment " + (index + 1), subject, trackedSkills)
         )
       };
     });
+}
+
+function normalizeYoutubeVideo(value, subject, theme, weekNumber) {
+  const candidateURL = String(value?.url ?? "").trim();
+  let url;
+  try {
+    const parsed = new URL(candidateURL);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    const isYouTube = host === "youtube.com" || host === "m.youtube.com" || host === "youtu.be";
+    const isVideoLink = host === "youtu.be" ? parsed.pathname.length > 1 : parsed.pathname === "/watch" && Boolean(parsed.searchParams.get("v"));
+    if (isYouTube && isVideoLink) url = parsed.toString();
+  } catch {}
+
+  const query = encodeURIComponent(`${subject} ${theme} educational video for kids age appropriate`);
+  return {
+    title: stringOr(value?.title, `Week ${weekNumber}: ${theme}`),
+    channel: stringOr(value?.channel, "YouTube educational videos"),
+    url: url ?? `https://www.youtube.com/results?search_query=${query}`,
+    reason: stringOr(value?.reason, `A child-friendly video search related to ${theme} in ${subject}.`)
+  };
 }
 
 function buildMilestones(weeks) {
