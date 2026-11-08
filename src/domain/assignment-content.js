@@ -35,13 +35,13 @@ function readableValue(value, kind) {
     .join("\n");
 }
 
-export function normalizePlanActivity(activity, fallbackTitle, subject, trackedSkills) {
+export function normalizePlanActivity(activity, fallbackTitle, subject, trackedSkills, expectedQuestionCount = 4) {
   if (!Array.isArray(activity.questions) || activity.questions.length === 0) {
     throw new Error("Each weekly activity must include questions.");
   }
   const questions = readableArray(activity.questions, "question");
-  if (questions.length !== 4) {
-    throw new Error("Each worksheet must contain four substantial exercises for a roughly 30-minute work session.");
+  if (questions.length !== expectedQuestionCount) {
+    throw new Error(`Each worksheet must contain exactly ${expectedQuestionCount} questions.`);
   }
   const questionSkills = normalizeQuestionSkills(activity.questionSkills, questions.length, trackedSkills);
   return {
